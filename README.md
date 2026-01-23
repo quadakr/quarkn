@@ -32,6 +32,7 @@ The interface and internal behavior may change as the project evolves.
 ## Requirements
 
 - Linux
+- python3
 - `notify-send`
 - One of the following (optional, for sound playback):
   - `mpv`
@@ -43,4 +44,4 @@ The interface and internal behavior may change as the project evolves.
 ## Example
 
 ```bash
-python3 quarkn.py -t 10m -m "Take a break"
+python3 quarkn.py -t 10mins -m "Take a break"
