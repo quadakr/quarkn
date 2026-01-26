@@ -76,6 +76,7 @@ def main():
     spam = False
     sound_path = ""
     debug = False
+    repeat = False
 
     parser = argparse.ArgumentParser(
         description=(
@@ -153,6 +154,14 @@ def main():
         help=("Enable debug output to the console. "),
     )
 
+    parser.add_argument(
+        "--repeat",
+        action="store_true",
+        help=(
+            "Repeat countdown again after notification. (Infinite until stopped manually) "
+        ),
+    )
+
     args = parser.parse_args()
 
     if not any(vars(args).values()):  # checks if any agrument got any value
@@ -182,6 +191,8 @@ def main():
 
     spam = args.spam
 
+    repeat = args.repeat
+
     sound_path = args.sound
 
     debug = args.debug
@@ -210,15 +221,6 @@ def main():
         if not args.cmd:
             cmd = input("Cmd to execute (not essential): ")
 
-        if not args.remaining_time_countdown:
-            print_time_assinger = input(
-                "Should the program output time countdown?[y/n]: "
-            )
-            if print_time_assinger == "y":
-                print_time = True
-            else:
-                print_time = False
-
         if not args.no_text:
             notification_assinger = input(
                 "Should the program send you a notification?[y/n]: "
@@ -242,7 +244,16 @@ def main():
             else:
                 spam = False
 
-        if not args.spam:
+        if not args.repeat:
+            repeat_assinger = input(
+                "Should the program repeat countdown and notification (and/or sound) until stopped manually?[y/n]: "
+            )
+            if repeat_assinger == "y":
+                repeat = True
+            else:
+                repeat = False
+
+        if not args.sound:
             sound_assinger = input(
                 "Should the program play sound after countdown? (not a part on notifications)[y/n]: "
             )
@@ -299,40 +310,43 @@ def main():
     if debug:
         print("Debug: everything set, executing main program. ")
 
-    if print_time == True:
-        timeprint_thread = threading.Thread(
-            target=timeprint, args=(wait_time_float,), daemon=True
-        )
+    while True:
+        if print_time == True:
+            timeprint_thread = threading.Thread(
+                target=timeprint, args=(wait_time_float,), daemon=True
+            )
+            if debug:
+                print("Debug: starting time countdown thread. ")
+            timeprint_thread.start()
 
-        if debug:
-            print("Debug: starting time countdown thread. ")
-        timeprint_thread.start()
+        time.sleep(
+            wait_time_float
+        )  # sleeping time that user set up earlier and after sending notify, executing cmd e.t.c.
 
-    time.sleep(
-        wait_time_float
-    )  # sleeping time that user set up earlier and after sending notify, executing cmd e.t.c.
+        if cmd:
+            if debug:
+                print("Debug: executing command: " + cmd)
+            subprocess.Popen(cmd, shell=True, start_new_session=True)
 
-    if cmd:
-        if debug:
-            print("Debug: executing command: " + cmd)
-        subprocess.Popen(cmd, shell=True, start_new_session=True)
+        if sound_path != "" and sound_path:
+            if debug:
+                print("Debug: trying to play a sound: " + sound_path)
+            play_sound(sound_path, debug)
 
-    if sound_path != "" and sound_path:
-        if debug:
-            print("Debug: trying to play a sound: " + sound_path)
-        play_sound(sound_path, debug)
+        if send_notification:
+            if spam == True:
+                notify(50, notification_text, debug)
+            else:
+                notify(1, notification_text, debug)
 
-    if send_notification:
-        if spam == True:
-            notify(50, notification_text, debug)
-        else:
-            notify(1, notification_text, debug)
-
-    if debug:
-        print("Debug: nothing remaining to do, exiting. ")
+        if not repeat:
+            if debug:
+                print("Debug: nothing remaining to do, exiting. ")
+                quit()
 
 
 if __name__ == "__main__":
     main()
+
 
 
