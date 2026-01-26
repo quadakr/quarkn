@@ -21,6 +21,8 @@ The interface and internal behavior may change as the project evolves.
 ## Features
 
 - Timed notifications
+- Repeated notifications
+- Spam mode
 - Interactive mode
 - Optional sound playback
 - Command execution after timer
