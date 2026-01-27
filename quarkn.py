@@ -1,16 +1,50 @@
+#!/usr/bin/env python3
+
 import argparse
+import re  # to find patterns in user input and set f.ex "4m 1 hour 1 second" as 3841 seconds for time.sleep() function correctly
 import shutil  # to find a player(s)
-import subprocess  # sound
-import sys  # for sys.exit(1) when there is a error
+import subprocess  # sound playing
+import sys  # for sys.exit(1) when there is a error or sys.exit(0) when it's everything ok
 import threading  # time countdown thread
 import time
 
 
-def timeprint(wait_time_float):  # time countdown
-    while wait_time_float > 0:
-        print(wait_time_float)
-        time.sleep(1)
-        wait_time_float -= 1
+def validate_number_words(time_str, FORBIDDEN_NUMBER_WORDS):
+    words = re.findall(r"[a-zA-Z]+", time_str.lower())
+
+    for word in words:
+        if word in FORBIDDEN_NUMBER_WORDS:
+            print("Error: Numbers greater than ten must be written using digits.")
+            print("Hint: '12 minutes', not 'twelve minutes'.")
+            sys.exit(1)
+
+
+def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
+    for word, digit in WORD_NUMBERS.items():
+        text = re.sub(
+            rf"\b{word}\b",
+            digit,
+            text,
+            flags=re.IGNORECASE,
+        )
+    return text
+
+
+def timeprint(wait_time_float):  # accurate time count
+    end_time = time.monotonic() + wait_time_float
+    next_tick = time.monotonic()
+
+    while True:
+        remaining = end_time - time.monotonic()
+        if remaining <= 0:
+            break
+
+        print(int(remaining))
+        next_tick += 1
+
+        sleep_time = next_tick - time.monotonic()
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 
 def notify(count_of_notifications, text, debug):  # using notify-send command
@@ -67,6 +101,21 @@ def play_sound(sound_path, debug):  # using external player
             print("Debug: no supported players found, failed to play a sound.")
 
 
+def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
+    time_str = time_str.replace(",", ".")
+    matches = TIME_PATTERN.findall(time_str)
+
+    if not matches:
+        raise ValueError(f"Invalid time format: {time_str}")
+
+    total_seconds = 0.0
+
+    for value, unit in matches:
+        total_seconds += float(value) * UNIT_TO_SECONDS[unit.lower()]
+
+    return total_seconds
+
+
 def main():
     wait_time_str = 0
     cmd = ""
@@ -77,6 +126,7 @@ def main():
     sound_path = ""
     debug = False
     repeat = False
+    version = "v0.2.0"
 
     parser = argparse.ArgumentParser(
         description=(
@@ -84,6 +134,12 @@ def main():
             "It can be used as a reminder, task scheduler, "
             "timer, or command executor. "
         )
+    )
+
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help=("Show program version and exit."),
     )
 
     parser.add_argument(
@@ -101,7 +157,7 @@ def main():
         "-t",
         "--wait-time",
         required=False,
-        help="Delay before notification (e.g. '10s', '5mins', not '1hour 10mins' but '1.3 hours' is supported). In seconds if only the number given. ",
+        help="Delay before notification (ex: '10mins 5 seconds' or '1 minute 3 hours'). In seconds if only the number given. ",
     )
 
     parser.add_argument(
@@ -170,6 +226,10 @@ def main():
         )
         sys.exit(1)
 
+    if args.version:  # not args.interactive because time may be set in interactive mode
+        print("quarkn: " + version)
+        sys.exit(0)
+
     if (
         not args.wait_time and not args.interactive
     ):  # not args.interactive because time may be set in interactive mode
@@ -206,7 +266,7 @@ def main():
             wait_time_str = input("Time to wait (essential, write 'ex' for examples): ")
 
             if wait_time_str == "ex":
-                print("'1h' works, '1h 30m' not, but '1.5h' is a working example.")
+                print("ex: '10mins 5 seconds' or '1 minute 3 hours'")
                 wait_time_str = ""
 
             if wait_time_str == "":
@@ -214,9 +274,7 @@ def main():
                     print("It's essential setting.")
                     wait_time_str = input("Time to wait: ")
                     if wait_time_str == "ex":
-                        print(
-                            "'1h' works, '1h 30m' not, but '1.5h' or '90m' is a working examples."
-                        )
+                        print("ex: '10mins 5 seconds' or '1 minute 3 hours'")
 
         if not args.cmd:
             cmd = input("Cmd to execute (not essential): ")
@@ -261,92 +319,125 @@ def main():
                 sound_path = input("Sound path: ")
                 sound_path = sound_path.strip().strip('"').strip("'")
 
-    wait_time_str = wait_time_str.replace(
-        ",", "."
-    )  # In some countries it's common to write "," in fractional number but doesn't work in python
+    TIME_PATTERN = re.compile(
+        r"(\d+(?:[.,]\d+)?)\s*"  # In some countries it's common to write "," in fractional number but doesn't work in python
+        r"(d|day|days|h|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)",
+        re.IGNORECASE,  # uppercase = lowercase
+    )
 
-    time_value = wait_time_str.rstrip(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    )  # "time_value" will be a pure number (yes str) from input
-    unit = wait_time_str[len(time_value) :]
+    UNIT_TO_SECONDS = {
+        "d": 86400,
+        "day": 86400,
+        "days": 86400,
+        "h": 3600,
+        "hrs": 3600,
+        "hour": 3600,
+        "hours": 3600,
+        "m": 60,
+        "min": 60,
+        "mins": 60,
+        "minute": 60,
+        "minutes": 60,
+        "s": 1,
+        "sec": 1,
+        "secs": 1,
+        "second": 1,
+        "seconds": 1,
+    }
 
-    time_value = float(
-        time_value
-    )  # next step converting this number * time unit word to seconds
+    FORBIDDEN_NUMBER_WORDS = {  # it's hard to support numbers like "fiftyfivebillionshundredninetyeightmillionseleven" so the parsing is limited
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen",
+        "twenty",
+        "thirty",
+        "forty",
+        "fifty",
+        "sixty",
+        "seventy",
+        "eighty",
+        "ninety",
+        "hundred",
+        "thousand",
+        "million",
+        "billion",
+    }
 
-    if unit in (
-        "m",
-        "min",
-        "mins",
-        "minute",
-        "minutes",
-        "M",
-        "Min",
-        "Mins",
-        "Minute",
-        "Minutes",
-    ):
-        wait_time_float = time_value * 60
-    elif unit in ("h", "hour", "hours", "hrs", "H", "Hour", "Hours", "Hrs"):
-        wait_time_float = time_value * 3600
-    elif unit in (
-        "s",
-        "seconds",
-        "sec",
-        "secs",
-        "second",
-        "S",
-        "Seconds",
-        "Sec",
-        "Secs",
-        "Second",
-        "",
-    ):
-        wait_time_float = time_value
-    else:
-        print(f"Unknown time unit: {unit}")
-        sys.exit(1)
+    WORD_NUMBERS = {
+        "zero": "0",
+        "one": "1",
+        "two": "2",
+        "three": "3",
+        "four": "4",
+        "five": "5",
+        "six": "6",
+        "seven": "7",
+        "eight": "8",
+        "nine": "9",
+        "ten": "10",
+    }
 
-    if debug:
-        print("Debug: everything set, executing main program. ")
+    validate_number_words(wait_time_str, FORBIDDEN_NUMBER_WORDS)
 
-    while True:
-        if print_time == True:
-            timeprint_thread = threading.Thread(
-                target=timeprint, args=(wait_time_float,), daemon=True
-            )
-            if debug:
-                print("Debug: starting time countdown thread. ")
-            timeprint_thread.start()
+    wait_time_str = normalize_numbers(
+        wait_time_str, WORD_NUMBERS
+    )  # changing words like "two" to valid numbers like "2"
 
-        time.sleep(
-            wait_time_float
-        )  # sleeping time that user set up earlier and after sending notify, executing cmd e.t.c.
+    wait_time_float = float(
+        parse_time_to_seconds(wait_time_str, TIME_PATTERN, UNIT_TO_SECONDS)
+    )
 
-        if cmd:
-            if debug:
-                print("Debug: executing command: " + cmd)
-            subprocess.Popen(cmd, shell=True, start_new_session=True)
+    try:
+        while True:
+            if print_time:
+                timeprint_thread = threading.Thread(
+                    target=timeprint, args=(wait_time_float,), daemon=True
+                )
+                if debug:
+                    print("Debug: starting time countdown thread. ")
+                timeprint_thread.start()
 
-        if sound_path != "" and sound_path:
-            if debug:
-                print("Debug: trying to play a sound: " + sound_path)
-            play_sound(sound_path, debug)
+            time.sleep(
+                wait_time_float
+            )  # sleeping time that user set up earlier and after sending notify, executing cmd e.t.c.
 
-        if send_notification:
-            if spam == True:
-                notify(50, notification_text, debug)
-            else:
-                notify(1, notification_text, debug)
+            if cmd:
+                if debug:
+                    print("Debug: executing command: " + cmd)
+                subprocess.Popen(cmd, shell=True, start_new_session=True)
 
-        if not repeat:
-            if debug:
-                print("Debug: nothing remaining to do, exiting. ")
-                quit()
+            if sound_path != "" and sound_path:
+                if debug:
+                    print("Debug: trying to play a sound: " + sound_path)
+                play_sound(sound_path, debug)
+
+            if send_notification:
+                if spam:
+                    notify(50, notification_text, debug)
+                else:
+                    notify(1, notification_text, debug)
+
+            if not repeat:
+                if debug:
+                    print("Debug: nothing remaining to do, exiting. ")
+                sys.exit(0)
+
+    except KeyboardInterrupt:
+        if debug:
+            print("Debug: interrupted by user.")
+        print(" Exited.")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
