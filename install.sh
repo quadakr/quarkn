@@ -6,10 +6,6 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-INSTALL_DIR="/usr/local/bin"
-SCRIPT_NAME="quarkn"
-REPO_URL="https://raw.githubusercontent.com/quadakr/quarkn/main/quarkn.py"
-
 echo "Checking dependencies..."
 
 # Check python
@@ -25,11 +21,9 @@ fi
 
 echo "Installing quarkn..."
 
-# Download
-curl -fsSL "$REPO_URL" -o "$INSTALL_DIR/$SCRIPT_NAME"
+curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/quarkn.py
 
-# Make executable
-chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+chmod +x /usr/local/bin/quarkn
 
-echo "quarkn installed to $INSTALL_DIR/$SCRIPT_NAME"
+echo "quarkn installed to /usr/local/bin/quarkn"
 echo "Run: quarkn --help"
