@@ -205,7 +205,7 @@ def main():
         )
         sys.exit(1)
 
-    if args.version:  # not args.interactive because time may be set in interactive mode
+    if args.version:
         print("quarkn: " + version)
         sys.exit(0)
 
@@ -411,6 +411,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
