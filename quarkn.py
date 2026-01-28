@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import argparse
+import argparse  # args
 import re  # to find patterns in user input and set f.ex "4m 1 hour 1 second" as 3841 seconds for time.sleep() function correctly
+import readline  # without this when you press f.ex left arrow, it writes "^[[D", but single library somehow fix that
 import shutil  # to find a player(s)
 import subprocess  # sound playing
 import sys  # for sys.exit(1) when there is a error or sys.exit(0) when it's everything ok
 import threading  # time countdown thread
-import time
+import time  # who would have thought, time
 
 
 def validate_number_words(time_str, FORBIDDEN_NUMBER_WORDS):
@@ -47,7 +48,7 @@ def timeprint(wait_time_float):  # accurate time count
             time.sleep(sleep_time)
 
 
-def notify(count_of_notifications, text, debug):  # using notify-send command
+def notify(count_of_notifications, text):  # using notify-send command
     while count_of_notifications > 0:
         subprocess.run(
             ["notify-send", text],
@@ -55,14 +56,11 @@ def notify(count_of_notifications, text, debug):  # using notify-send command
             stderr=subprocess.DEVNULL,
         )
 
-        if debug:
-            print("Debug: Notification sent.")
-
         time.sleep(0.1)
         count_of_notifications = count_of_notifications - 1
 
 
-def play_sound(sound_path, debug):  # using external player
+def play_sound(sound_path):  # using external player
     if shutil.which("mpv"):
         subprocess.Popen(
             ["mpv", "--no-video", sound_path],
@@ -72,10 +70,6 @@ def play_sound(sound_path, debug):  # using external player
         )
         return
 
-    else:
-        if debug:
-            print("Debug: mpv player not found, trying ffplay")
-
     if shutil.which("ffplay"):
         subprocess.Popen(
             ["ffplay", "-nodisp", sound_path],
@@ -84,10 +78,6 @@ def play_sound(sound_path, debug):  # using external player
             start_new_session=True,
         )
 
-    else:
-        if debug:
-            print("Debug: ffplay player not found, trying vlc")
-
     if shutil.which("vlc"):
         subprocess.Popen(
             ["vlc", "--intf", "dummy", "--play-and-exit", sound_path],
@@ -95,10 +85,6 @@ def play_sound(sound_path, debug):  # using external player
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-
-    else:
-        if debug:
-            print("Debug: no supported players found, failed to play a sound.")
 
 
 def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
@@ -111,7 +97,7 @@ def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
         for value, unit in matches:
             total_seconds += float(value) * UNIT_TO_SECONDS[unit.lower()]
     else:
-        total_seconds = float(time_str) # str with numbers but without words is in seconds by default
+        total_seconds = float(time_str)
 
     return total_seconds
 
@@ -124,7 +110,6 @@ def main():
     send_notification = True
     spam = False
     sound_path = ""
-    debug = False
     repeat = False
     version = "v0.2.0"
 
@@ -134,12 +119,6 @@ def main():
             "It can be used as a reminder, task scheduler, "
             "timer, or command executor. "
         )
-    )
-
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help=("Show program version and exit."),
     )
 
     parser.add_argument(
@@ -205,17 +184,17 @@ def main():
     )
 
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help=("Enable debug output to the console. "),
-    )
-
-    parser.add_argument(
         "--repeat",
         action="store_true",
         help=(
             "Repeat countdown again after notification. (Infinite until stopped manually) "
         ),
+    )
+
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help=("Show program version and exit."),
     )
 
     args = parser.parse_args()
@@ -255,152 +234,155 @@ def main():
 
     sound_path = args.sound
 
-    debug = args.debug
-
-    if args.interactive:
-        print("Write every preference one by one. ")
-
-        if (
-            not args.wait_time
-        ):  # arguments is a primary source, anything interactive can be skipped
-            wait_time_str = input("Time to wait (essential, write 'ex' for examples): ")
-
-            if wait_time_str == "ex":
-                print("ex: '10mins 5 seconds' or '1 minute 3 hours'")
-                wait_time_str = ""
-
-            if wait_time_str == "":
-                while wait_time_str == "" or wait_time_str == "ex":
-                    print("It's essential setting.")
-                    wait_time_str = input("Time to wait: ")
-                    if wait_time_str == "ex":
-                        print("ex: '10mins 5 seconds' or '1 minute 3 hours'")
-
-        if not args.cmd:
-            cmd = input("Cmd to execute (not essential): ")
-
-        if not args.no_text:
-            notification_assinger = input(
-                "Should the program send you a notification?[y/n]: "
-            )
-            if notification_assinger == "y":
-                send_notification = True
-            else:
-                send_notification = False
-
-            if not args.text:
-                notification_text = input("Custom notification text (not essential): ")
-                if notification_text == "":  # reset to default if skipped
-                    notification_text = "You have a scheduled notification from quarkn."
-
-        if not args.spam:
-            spam_assinger = input(
-                "Should the program spam notifications? (it will send 50 instead of 1)[y/n]: "
-            )
-            if spam_assinger == "y":
-                spam = True
-            else:
-                spam = False
-
-        if not args.repeat:
-            repeat_assinger = input(
-                "Should the program repeat countdown and notification (and/or sound) until stopped manually?[y/n]: "
-            )
-            if repeat_assinger == "y":
-                repeat = True
-            else:
-                repeat = False
-
-        if not args.sound:
-            sound_assinger = input(
-                "Should the program play sound after countdown? (not a part on notifications)[y/n]: "
-            )
-            if sound_assinger == "y":
-                sound_path = input("Sound path: ")
-                sound_path = sound_path.strip().strip('"').strip("'")
-
-    TIME_PATTERN = re.compile(
-        r"(\d+(?:[.,]\d+)?)\s*"  # In some countries it's common to write "," in fractional number but doesn't work in python
-        r"(d|day|days|h|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)",
-        re.IGNORECASE,  # uppercase = lowercase
-    )
-
-    UNIT_TO_SECONDS = {
-        "d": 86400,
-        "day": 86400,
-        "days": 86400,
-        "h": 3600,
-        "hrs": 3600,
-        "hour": 3600,
-        "hours": 3600,
-        "m": 60,
-        "min": 60,
-        "mins": 60,
-        "minute": 60,
-        "minutes": 60,
-        "s": 1,
-        "sec": 1,
-        "secs": 1,
-        "second": 1,
-        "seconds": 1,
-    }
-
-    FORBIDDEN_NUMBER_WORDS = {  # it's hard to support numbers like "fiftyfivebillionshundredninetyeightmillionseleven" so the parsing is limited
-        "eleven",
-        "twelve",
-        "thirteen",
-        "fourteen",
-        "fifteen",
-        "sixteen",
-        "seventeen",
-        "eighteen",
-        "nineteen",
-        "twenty",
-        "thirty",
-        "forty",
-        "fifty",
-        "sixty",
-        "seventy",
-        "eighty",
-        "ninety",
-        "hundred",
-        "thousand",
-        "million",
-        "billion",
-    }
-
-    WORD_NUMBERS = {
-        "zero": "0",
-        "one": "1",
-        "two": "2",
-        "three": "3",
-        "four": "4",
-        "five": "5",
-        "six": "6",
-        "seven": "7",
-        "eight": "8",
-        "nine": "9",
-        "ten": "10",
-    }
-
-    validate_number_words(wait_time_str, FORBIDDEN_NUMBER_WORDS)
-
-    wait_time_str = normalize_numbers(
-        wait_time_str, WORD_NUMBERS
-    )  # changing words like "two" to valid numbers like "2"
-
-    wait_time_float = float(
-        parse_time_to_seconds(wait_time_str, TIME_PATTERN, UNIT_TO_SECONDS)
-    )
-
     try:
+        if args.interactive:
+            print("Write every preference one by one. ")
+
+            if (
+                not args.wait_time
+            ):  # arguments is a primary source, anything interactive can be skipped
+                wait_time_str = input(
+                    "Time to wait (essential, write 'ex' for examples): "
+                )
+
+                if wait_time_str == "ex":
+                    print("ex: '10mins 5 seconds' or '1 day 2 hours'")
+                    wait_time_str = ""
+
+                if wait_time_str == "":
+                    while wait_time_str == "" or wait_time_str == "ex":
+                        print("It's essential setting.")
+                        wait_time_str = input("Time to wait: ")
+                        if wait_time_str == "ex":
+                            print("ex: '10mins 5 seconds' or '1 minute 3 hours'")
+
+            if not args.cmd:
+                cmd = input("Cmd to execute (not essential): ")
+
+            if not args.no_text:
+                notification_assinger = input(
+                    "Should the program send you a notification?[y/n]: "
+                )
+                if notification_assinger == "y":
+                    send_notification = True
+                else:
+                    send_notification = False
+
+                if not args.text:
+                    notification_text = input(
+                        "Custom notification text (not essential): "
+                    )
+                    if notification_text == "":  # reset to default if skipped
+                        notification_text = (
+                            "You have a scheduled notification from quarkn."
+                        )
+
+            if not args.spam:
+                spam_assinger = input(
+                    "Should the program spam notifications? (it will send 50 instead of 1)[y/n]: "
+                )
+                if spam_assinger == "y":
+                    spam = True
+                else:
+                    spam = False
+
+            if not args.repeat:
+                repeat_assinger = input(
+                    "Should the program repeat countdown and notification (and/or sound) until stopped manually?[y/n]: "
+                )
+                if repeat_assinger == "y":
+                    repeat = True
+                else:
+                    repeat = False
+
+            if not args.sound:
+                sound_assinger = input(
+                    "Should the program play sound after countdown? (not a part on notifications)[y/n]: "
+                )
+                if sound_assinger == "y":
+                    sound_path = input("Sound path: ")
+                    sound_path = sound_path.strip().strip('"').strip("'")
+
+        TIME_PATTERN = re.compile(
+            r"(\d+(?:[.,]\d+)?)\s*"  # In some countries it's common to write "," in fractional number but doesn't work in python
+            r"(d|day|days|h|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)",
+            re.IGNORECASE,  # uppercase = lowercase
+        )
+
+        UNIT_TO_SECONDS = {
+            "d": 86400,
+            "day": 86400,
+            "days": 86400,
+            "h": 3600,
+            "hrs": 3600,
+            "hour": 3600,
+            "hours": 3600,
+            "m": 60,
+            "min": 60,
+            "mins": 60,
+            "minute": 60,
+            "minutes": 60,
+            "s": 1,
+            "sec": 1,
+            "secs": 1,
+            "second": 1,
+            "seconds": 1,
+        }
+
+        FORBIDDEN_NUMBER_WORDS = {  # it's hard to support numbers like "fiftyfivebillionshundredninetyeightmillionseleven" so the parsing is limited
+            "eleven",
+            "twelve",
+            "thirteen",
+            "fourteen",
+            "fifteen",
+            "sixteen",
+            "seventeen",
+            "eighteen",
+            "nineteen",
+            "twenty",
+            "thirty",
+            "forty",
+            "fifty",
+            "sixty",
+            "seventy",
+            "eighty",
+            "ninety",
+            "hundred",
+            "thousand",
+            "million",
+            "billion",
+        }
+
+        WORD_NUMBERS = {
+            "zero": "0",
+            "one": "1",
+            "two": "2",
+            "three": "3",
+            "four": "4",
+            "five": "5",
+            "six": "6",
+            "seven": "7",
+            "eight": "8",
+            "nine": "9",
+            "ten": "10",
+        }
+
+        validate_number_words(wait_time_str, FORBIDDEN_NUMBER_WORDS)
+
+        wait_time_str = normalize_numbers(
+            wait_time_str, WORD_NUMBERS
+        )  # changing words like "two" to valid numbers like "2"
+
+        wait_time_float = float(
+            parse_time_to_seconds(wait_time_str, TIME_PATTERN, UNIT_TO_SECONDS)
+        )
+
         while True:
             if print_time:
                 timeprint_thread = threading.Thread(
                     target=timeprint, args=(wait_time_float,), daemon=True
                 )
-                if debug:
-                    print("Debug: starting time countdown thread. ")
+
                 timeprint_thread.start()
 
             time.sleep(
@@ -408,35 +390,28 @@ def main():
             )  # sleeping time that user set up earlier and after sending notify, executing cmd e.t.c.
 
             if cmd:
-                if debug:
-                    print("Debug: executing command: " + cmd)
                 subprocess.Popen(cmd, shell=True, start_new_session=True)
 
             if sound_path != "" and sound_path:
-                if debug:
-                    print("Debug: trying to play a sound: " + sound_path)
-                play_sound(sound_path, debug)
+                play_sound(sound_path)
 
             if send_notification:
                 if spam:
-                    notify(50, notification_text, debug)
+                    notify(50, notification_text)
                 else:
-                    notify(1, notification_text, debug)
+                    notify(1, notification_text)
 
             if not repeat:
-                if debug:
-                    print("Debug: nothing remaining to do, exiting. ")
                 sys.exit(0)
 
     except KeyboardInterrupt:
-        if debug:
-            print("Debug: interrupted by user.")
-        print(" Exited.")
+        print("\nExited quarkn.")
         sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
