@@ -31,6 +31,19 @@ def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
     return text
 
 
+def progress_bar_print(reached, toreach, length):
+    filled = (reached / toreach) * length
+    unfilled = length - filled
+    print("[", end="", flush=True)
+    while filled > 1:
+        print("=", end="", flush=True)
+        filled = filled - 1
+    while unfilled > 1:
+        print("-", end="", flush=True)
+        unfilled = unfilled - 1
+    print("]", end="", flush=True)
+
+
 def timeprint(wait_time_float):  # accurate time count
     end_time = time.monotonic() + wait_time_float
     next_tick = time.monotonic()
@@ -40,7 +53,9 @@ def timeprint(wait_time_float):  # accurate time count
             break
 
         sys.stdout.write("\033[2K\r")  # erasing line
-        print(int(remaining), end="", flush=True)
+        print(str(int(remaining)) + " ", end="", flush=True)
+        progress_bar_print(wait_time_float - remaining, wait_time_float, 40)
+
         next_tick += 1
 
         sleep_time = next_tick - time.monotonic()
