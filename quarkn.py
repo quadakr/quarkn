@@ -53,7 +53,11 @@ def timeprint(wait_time_float):  # accurate time count
             break
 
         sys.stdout.write("\033[2K\r")  # erasing line
-        print(str(int(remaining)) + " ", end="", flush=True)
+        print(
+            str(int(remaining)) + "/" + str(int(wait_time_float)) + " ",
+            end="",
+            flush=True,
+        )
         progress_bar_print(wait_time_float - remaining, wait_time_float, 40)
 
         next_tick += 1
@@ -429,3 +433,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
