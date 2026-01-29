@@ -23,7 +23,8 @@ echo "Installing quarkn..."
 
 rm -rf /usr/local/bin/quarkn
 
-curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/quarkn.py
+curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/quarkn.py \
+    -o /usr/local/bin/quarkn
 
 chmod +x /usr/local/bin/quarkn
 
