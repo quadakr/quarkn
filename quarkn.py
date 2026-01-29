@@ -34,13 +34,13 @@ def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
 def timeprint(wait_time_float):  # accurate time count
     end_time = time.monotonic() + wait_time_float
     next_tick = time.monotonic()
-
     while True:
         remaining = end_time - time.monotonic()
         if remaining <= 0:
             break
 
-        print(int(remaining))
+        sys.stdout.write("\033[2K\r")  # erasing line
+        print(int(remaining), end="", flush=True)
         next_tick += 1
 
         sleep_time = next_tick - time.monotonic()
@@ -378,6 +378,7 @@ def main():
         )
 
         while True:
+            print("")
             if print_time:
                 timeprint_thread = threading.Thread(
                     target=timeprint, args=(wait_time_float,), daemon=True
@@ -401,6 +402,8 @@ def main():
                 else:
                     notify(1, notification_text)
 
+            print("", end="\n\n")
+
             if not repeat:
                 sys.exit(0)
 
@@ -411,9 +414,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
