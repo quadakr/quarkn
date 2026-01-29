@@ -43,7 +43,7 @@ The interface and internal behavior may change as the project evolves.
 
 ---
 
-## Installing
+## Installing/Updating
 
 Download install.sh, then:
 
