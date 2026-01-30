@@ -48,11 +48,37 @@ def timeprint(wait_time_float):  # accurate time count
             breaknow = True
 
         sys.stdout.write("\033[2K\r")  # erasing line
-        print(
-            str(int(remaining)) + "/" + str(int(wait_time_float)) + "s ",
-            end="",
-            flush=True,
-        )
+
+        if int(remaining) > 3599:
+            print(
+                "Remaining: "
+                + str("{:.2f}".format(remaining / 3600))
+                + "/"
+                + str("{:.2f}".format(wait_time_float / 3600))
+                + "h ",
+                end="",
+                flush=True,
+            )
+        elif int(remaining) > 119:
+            print(
+                "Remaining: "
+                + str("{:.1f}".format(remaining / 60))
+                + "/"
+                + str("{:.1f}".format(wait_time_float / 60))
+                + "m ",
+                end="",
+                flush=True,
+            )
+        else:
+            print(
+                "Remaining: "
+                + str(int(remaining) + 1)
+                + "/"
+                + str(int(wait_time_float))
+                + "s ",
+                end="",
+                flush=True,
+            )
         progress_bar_print(wait_time_float - remaining, wait_time_float, 40)
 
         if breaknow:
