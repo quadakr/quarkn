@@ -32,25 +32,20 @@ def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
 
 
 def progress_bar_print(reached, toreach, length):
-    filled = (reached / toreach) * length
+    filled = int((reached / toreach) * length)
     unfilled = length - filled
-    print("[", end="", flush=True)
-    while filled > 1:
-        print("=", end="", flush=True)
-        filled = filled - 1
-    while unfilled > 1:
-        print("-", end="", flush=True)
-        unfilled = unfilled - 1
-    print("]", end="", flush=True)
+    bar = "[" + "=" * filled + "-" * unfilled + "]"
+    print(bar, end="", flush=True)
 
 
 def timeprint(wait_time_float):  # accurate time count
     end_time = time.monotonic() + wait_time_float
     next_tick = time.monotonic()
     while True:
+        breaknow = False
         remaining = end_time - time.monotonic()
         if remaining <= 0:
-            break
+            breaknow = True
 
         sys.stdout.write("\033[2K\r")  # erasing line
         print(
@@ -59,6 +54,9 @@ def timeprint(wait_time_float):  # accurate time count
             flush=True,
         )
         progress_bar_print(wait_time_float - remaining, wait_time_float, 40)
+
+        if breaknow:
+            break
 
         next_tick += 1
 
@@ -433,4 +431,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
