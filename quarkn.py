@@ -49,7 +49,7 @@ def timeprint(wait_time_float):  # accurate time count
 
         sys.stdout.write("\033[2K\r")  # erasing line
         print(
-            str(int(remaining)) + "/" + str(int(wait_time_float)) + " ",
+            str(int(remaining)) + "/" + str(int(wait_time_float)) + "s ",
             end="",
             flush=True,
         )
@@ -164,9 +164,9 @@ def main():
 
     parser.add_argument(
         "-r",
-        "--remaining-time-countdown",
+        "--no-remaining-time-countdown",
         action="store_true",
-        help="Output remaining time every second. Works not perfectly yet.",
+        help="Don't output remaining time every second. ",
     )
 
     parser.add_argument(
@@ -243,7 +243,7 @@ def main():
     if args.no_text:
         send_notification = False
 
-    print_time = args.remaining_time_countdown
+    print_time = not args.no_remaining_time_countdown
 
     spam = args.spam
 
@@ -394,8 +394,8 @@ def main():
             parse_time_to_seconds(wait_time_str, TIME_PATTERN, UNIT_TO_SECONDS)
         )
 
+        print("", end="\n")
         while True:
-            print("")
             if print_time:
                 timeprint_thread = threading.Thread(
                     target=timeprint, args=(wait_time_float,), daemon=True
@@ -419,17 +419,19 @@ def main():
                 else:
                     notify(1, notification_text)
 
-            print("", end="\n\n")
-
             if not repeat:
+                print("", end="\n\n")
                 sys.exit(0)
 
+            sys.stdout.write("\033[2K\r")  # erasing line
+
     except KeyboardInterrupt:
-        print("\nExited quarkn.")
+        print("\n\nExited quarkn.\n")
         sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
+
 
 
