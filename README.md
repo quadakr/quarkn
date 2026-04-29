@@ -1,3 +1,5 @@
+## Caution: Strictly prohibited for use in California.
+
 # Quarkn
 
 Simple **Linux only** CLI notification tool.
