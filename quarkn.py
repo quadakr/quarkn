@@ -194,7 +194,7 @@ def format_stopwatch_time_precise(seconds):
 
 
 def stopwatch_run():
-    spinner = ['/', '—', '\\', '|']
+    spinner = ['/', '—', '\\']
     start = time.monotonic()
     next_frame = start
     spinner_idx = 0
