@@ -315,8 +315,8 @@ def main():
         sys.exit(0)
 
     if args.stopwatch:
-    stopwatch_run()
-    sys.exit(0)   
+        stopwatch_run()
+        sys.exit(0)   
 
     if (
         not args.wait_time and not args.interactive
