@@ -172,31 +172,61 @@ def format_stopwatch_time(seconds):
     return " ".join(parts)
 
 
+def format_stopwatch_time_precise(seconds):
+    """Format with hundredths of seconds: 1m 30.45s"""
+    total_ms = int(seconds * 100)
+
+    hours = total_ms // 360000
+    total_ms %= 360000
+    minutes = total_ms // 6000
+    total_ms %= 6000
+    secs = total_ms // 100
+    hundredths = total_ms % 100
+
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    parts.append(f"{secs}.{hundredths:02d}s")
+
+    return " ".join(parts)
+
+
 def stopwatch_run():
     spinner = ['/', '—', '\\', '|']
     start = time.monotonic()
-    next_tick = start
-    idx = 0
+    next_frame = start
+    spinner_idx = 0
+    fps = 100  # 100 frames per second for smooth display
+    frame_interval = 1.0 / fps
+    spinner_change_interval = 0.25  # spinner changes every 0.25s (25 frames)
+    next_spinner_change = start + spinner_change_interval
 
     try:
         while True:
-            elapsed = time.monotonic() - start
-            # обновляем индекс спиннера (меняем каждый раз)
-            idx = (idx + 1) % len(spinner)
-            formatted = format_stopwatch_time(elapsed)
+            now = time.monotonic()
+            elapsed = now - start
+
+            # change spinner position every 0.25 seconds (25 frames at 100 FPS)
+            if now >= next_spinner_change:
+                spinner_idx = (spinner_idx + 1) % len(spinner)
+                next_spinner_change += spinner_change_interval
+
+            formatted = format_stopwatch_time_precise(elapsed)
             # выводим в одну строку, затираем предыдущее
-            sys.stdout.write(f"\r{spinner[idx]} {formatted}")
+            sys.stdout.write(f"\r{spinner[spinner_idx]} {formatted}")
             sys.stdout.flush()
 
-            # планируем следующее обновление строго через 1 секунду
-            next_tick += 1
-            sleep_time = next_tick - time.monotonic()
+            # планируем следующий кадр строго через 0.01 секунды (100 FPS)
+            next_frame += frame_interval
+            sleep_time = next_frame - time.monotonic()
             if sleep_time > 0:
                 time.sleep(sleep_time)
     except KeyboardInterrupt:
         # при Ctrl+C выводим финальное значение и завершаем
         elapsed = time.monotonic() - start
-        sys.stdout.write(f"\r✓ {format_stopwatch_time(elapsed)}\n")
+        sys.stdout.write(f"\r✓ {format_stopwatch_time_precise(elapsed)}\n")
         sys.stdout.flush()
         print("\nStopwatch stopped.")
         sys.exit(0)
