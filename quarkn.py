@@ -200,7 +200,7 @@ def stopwatch_run():
     spinner_idx = 0
     fps = 100  # 100 frames per second for smooth display
     frame_interval = 1.0 / fps
-    spinner_change_interval = 0.25  # spinner changes every 0.25s (25 frames)
+    spinner_change_interval = 0.5  # spinner changes every 0.25s (25 frames)
     next_spinner_change = start + spinner_change_interval
 
     try:
