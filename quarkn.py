@@ -144,6 +144,62 @@ def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
 
     return total_seconds
 
+def format_stopwatch_time(seconds):
+    """
+    Форматирует прошедшее время в читаемый вид:
+    - < 60 с: "45s"
+    - < 3600 с: "1m 30s"
+    - < 86400 с: "2h 15m"
+    - >= 86400 с: "3d 4h"
+    """
+    seconds = int(seconds)
+    days = seconds // 86400
+    seconds %= 86400
+    hours = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds or not parts:  # всегда показываем секунды, если ничего нет
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
+
+
+def stopwatch_run():
+    spinner = ['/', '—', '\\', '|']
+    start = time.monotonic()
+    next_tick = start
+    idx = 0
+
+    try:
+        while True:
+            elapsed = time.monotonic() - start
+            # обновляем индекс спиннера (меняем каждый раз)
+            idx = (idx + 1) % len(spinner)
+            formatted = format_stopwatch_time(elapsed)
+            # выводим в одну строку, затираем предыдущее
+            sys.stdout.write(f"\r{spinner[idx]} {formatted}")
+            sys.stdout.flush()
+
+            # планируем следующее обновление строго через 1 секунду
+            next_tick += 1
+            sleep_time = next_tick - time.monotonic()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+    except KeyboardInterrupt:
+        # при Ctrl+C выводим финальное значение и завершаем
+        elapsed = time.monotonic() - start
+        sys.stdout.write(f"\r✓ {format_stopwatch_time(elapsed)}\n")
+        sys.stdout.flush()
+        print("\nStopwatch stopped.")
+        sys.exit(0)
 
 def main():
     wait_time_str = 0
@@ -240,6 +296,12 @@ def main():
         help=("Show program version and exit."),
     )
 
+    parser.add_argument(
+    "--stopwatch", "-sw",
+    action="store_true",
+    help="Run as stopwatch (count up) instead of countdown.",
+    )
+
     args = parser.parse_args()
 
     if not any(vars(args).values()):  # checks if any agrument got any value
@@ -251,6 +313,10 @@ def main():
     if args.version:
         print("quarkn: " + version)
         sys.exit(0)
+
+    if args.stopwatch:
+    stopwatch_run()
+    sys.exit(0)   
 
     if (
         not args.wait_time and not args.interactive
