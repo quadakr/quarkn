@@ -62,5 +62,13 @@ curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/install.sh | su
 ## Example
 
 ```bash
-quarkn -t 10mins -m "Take a break"
+quarkn -t 10mins -m "Take a break" -s "~/alert.mp3"
 ```
+
+## Stopwatch mode
+
+```bash
+quarkn -sw
+```
+
+
