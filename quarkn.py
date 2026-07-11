@@ -79,7 +79,7 @@ def timeprint(wait_time_float):  # accurate time count
                 end="",
                 flush=True,
             )
-        progress_bar_print(wait_time_float - remaining, wait_time_float, 40)
+        progress_bar_print(wait_time_float - remaining, wait_time_float, 20)
 
         if breaknow:
             break
