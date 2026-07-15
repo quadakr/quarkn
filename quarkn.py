@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse  # args
+import random  # for -rnd/--random and -ar/--animate-random
 import re  # to find patterns in user input and set f.ex "4m 1 hour 1 second" as 3841 seconds for time.sleep() function correctly
 import readline  # without this when you press f.ex left arrow, it writes "^[[D", but single library somehow fix that
 import shutil  # to find a player(s)
@@ -231,6 +232,122 @@ def stopwatch_run():
         print("\nStopwatch stopped.")
         sys.exit(0)
 
+
+_ONES = [
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+    "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+    "sixteen", "seventeen", "eighteen", "nineteen",
+]
+_TENS = [
+    "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy",
+    "eighty", "ninety",
+]
+_SCALES = [(1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand")]
+
+
+def _three_digit_to_words(n):  # 0-999 -> ["nine", "hundred", "ninety", "nine"]
+    words = []
+    if n >= 100:
+        words.append(_ONES[n // 100])
+        words.append("hundred")
+        n %= 100
+    if n >= 20:
+        words.append(_TENS[n // 10])
+        n %= 10
+        if n:
+            words.append(_ONES[n])
+    elif n > 0:
+        words.append(_ONES[n])
+    return words
+
+
+def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
+    if n == 0:
+        return "zero"
+
+    words = []
+    if n < 0:
+        words.append("negative")
+        n = -n
+
+    for value, name in _SCALES:
+        if n >= value:
+            count = n // value
+            words.extend(_three_digit_to_words(count))
+            words.append(name)
+            n %= value
+
+    if n > 0:
+        words.extend(_three_digit_to_words(n))
+
+    return " ".join(words)
+
+
+def animate_random_reveal(low, high, result):
+    """
+    Показывает "рулетку": описание диапазона словами, затем мелькание
+    случайных чисел из диапазона, постепенно замедляющееся и
+    останавливающееся на итоговом результате.
+    """
+    print(
+        f"Rolling from {low} to {high} "
+        f"(from {number_to_words(low)} to {number_to_words(high)})..."
+    )
+
+    frames = 26
+    for i in range(frames):
+        candidate = random.randint(low, high)
+        progress = i / (frames - 1)
+        delay = 0.02 + (progress ** 2) * 0.16  # ease-out, замедляется к концу
+
+        sys.stdout.write("\033[2K\r")  # erasing line
+        sys.stdout.write(f"🎲 {candidate}")
+        sys.stdout.flush()
+        time.sleep(delay)
+
+    sys.stdout.write("\033[2K\r")
+    sys.stdout.write(f"🎲 {result}\n")
+    sys.stdout.flush()
+
+
+def parse_random_range(tokens):
+    """
+    Разбирает диапазон для рандомайзера из разных форматов:
+    - два отдельных аргумента: -rnd 1 100 / -rnd -10 100
+    - компактная запись: -rnd "1-100" / -rnd "-10-100" / -rnd "-10--100"
+    - словесная запись: -rnd "1 to 100" / -rnd "from 1 to 100" / -rnd "from -10 to -100"
+    Возвращает (low, high) отсортированные по возрастанию.
+    """
+    # если пришло ровно два токена и оба сами по себе валидные целые числа -
+    # это короткая форма "-rnd 1 100" / "-rnd -10 100", берём их напрямую
+    if len(tokens) == 2:
+        try:
+            a = int(tokens[0])
+            b = int(tokens[1])
+            return min(a, b), max(a, b)
+        except ValueError:
+            pass
+
+    text = " ".join(str(t) for t in tokens).strip().lower()
+    text = re.sub(r"\bfrom\b", " ", text)
+    text = re.sub(r"\bto\b", "-", text)
+    text = re.sub(r"\s+", "", text)  # убираем все пробелы
+
+    match = re.match(r"^(-?\d+)-(-?\d+)$", text)
+
+    if not match:
+        print("Error: could not parse random range.")
+        print(
+            "Examples: quarkn -rnd 1 100 | quarkn -rnd \"1-100\" | "
+            "quarkn -rnd \"1 to 100\" | quarkn -rnd \"from 1 to 100\" | "
+            "quarkn -rnd \"-10-50\""
+        )
+        sys.exit(1)
+
+    a, b = int(match.group(1)), int(match.group(2))
+    return min(a, b), max(a, b)
+
+
 def main():
     wait_time_str = 0
     cmd = ""
@@ -240,7 +357,7 @@ def main():
     spam = False
     sound_path = ""
     repeat = False
-    version = "v0.2.0"
+    version = "v0.4.0"
 
     parser = argparse.ArgumentParser(
         description=(
@@ -332,6 +449,28 @@ def main():
     help="Run as stopwatch (count up) instead of countdown.",
     )
 
+    parser.add_argument(
+        "-rnd",
+        "--random",
+        nargs="+",
+        help=(
+            "Print a random integer from a range instead of running a timer. "
+            "Supports negative numbers. "
+            "Formats: '1 100', '1-100', '1 to 100', 'from 1 to 100', '-10-100', 'from -10 to -100'."
+        ),
+    )
+
+    parser.add_argument(
+        "-ar",
+        "--animate-random",
+        action="store_true",
+        help=(
+            "Used together with -rnd/--random. Animates the reveal with a "
+            "shuffling 'roll' effect and prints the range as words "
+            "(ex: 'from one to ten')."
+        ),
+    )
+
     args = parser.parse_args()
 
     if not any(vars(args).values()):  # checks if any agrument got any value
@@ -346,7 +485,22 @@ def main():
 
     if args.stopwatch:
         stopwatch_run()
-        sys.exit(0)   
+        sys.exit(0)
+
+    if args.animate_random and not args.random:
+        print("Error: -ar/--animate-random must be used together with -rnd/--random.")
+        sys.exit(1)
+
+    if args.random:
+        low, high = parse_random_range(args.random)
+        result = random.randint(low, high)
+
+        if args.animate_random:
+            animate_random_reveal(low, high, result)
+        else:
+            print(result)
+
+        sys.exit(0)
 
     if (
         not args.wait_time and not args.interactive
@@ -554,6 +708,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
