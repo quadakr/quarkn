@@ -239,26 +239,23 @@ _TENS = [
     "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy",
     "eighty", "ninety",
 ]
-_SCALES = [(1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand")]
+_SCALES = [
+    (10 ** 33, "decillion"),
+    (10 ** 30, "nonillion"),
+    (10 ** 27, "octillion"),
+    (10 ** 24, "septillion"),
+    (10 ** 21, "sextillion"),
+    (10 ** 18, "quintillion"),
+    (10 ** 15, "quadrillion"),
+    (10 ** 12, "trillion"),
+    (10 ** 9, "billion"),
+    (10 ** 6, "million"),
+    (10 ** 3, "thousand"),
+]
 
+_NOISE_CHARS = "#@%&*?/\\+=~"
 
-def _three_digit_to_words(n):  # 0-999 -> ["nine", "hundred", "ninety", "nine"]
-    words = []
-    if n >= 100:
-        words.append(_ONES[n // 100])
-        words.append("hundred")
-        n %= 100
-    if n >= 20:
-        words.append(_TENS[n // 10])
-        n %= 10
-        if n:
-            words.append(_ONES[n])
-    elif n > 0:
-        words.append(_ONES[n])
-    return words
-
-
-def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
+def _number_to_words_impl(n):
     if n == 0:
         return "zero"
 
@@ -280,7 +277,31 @@ def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
     return " ".join(words)
 
 
-_NOISE_CHARS = "#@%&*?/\\+=~"
+def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
+    try:
+        return _number_to_words_impl(n)
+    except (IndexError, ValueError):
+        # число за пределами поддерживаемых разрядов (больше decillion) -
+        # не падаем, а просто показываем цифрами
+        return str(n)
+
+
+def _three_digit_to_words(n):  # 0-999 -> ["nine", "hundred", "ninety", "nine"]
+    words = []
+    if n >= 100:
+        words.append(_ONES[n // 100])
+        words.append("hundred")
+        n %= 100
+    if n >= 20:
+        words.append(_TENS[n // 10])
+        n %= 10
+        if n:
+            words.append(_ONES[n])
+    elif n > 0:
+        words.append(_ONES[n])
+    return words
+
+
 
 
 def animate_random_reveal(low, high, result):
