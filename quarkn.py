@@ -331,26 +331,29 @@ def animate_random_reveal(low, high, result):
     frame_pool = _NOISE_CHARS + "0123456789"
     start = time.monotonic()
 
-    while not all(locked):
-        elapsed = time.monotonic() - start
+    try:
+        while not all(locked):
+            elapsed = time.monotonic() - start
 
-        for i in range(digit_count):
-            if not locked[i] and elapsed >= lock_times[i]:
-                locked[i] = True
+            for i in range(digit_count):
+                if not locked[i] and elapsed >= lock_times[i]:
+                    locked[i] = True
 
-        chars = [
-            digits[i] if locked[i] else random.choice(frame_pool)
-            for i in range(digit_count)
-        ]
-        display = sign + "".join(chars)
+            chars = [
+                digits[i] if locked[i] else random.choice(frame_pool)
+                for i in range(digit_count)
+            ]
+            display = sign + "".join(chars)
 
-        sys.stdout.write("\033[2K\r")  # erasing line
-        sys.stdout.write(f"🎲 {display}")
-        sys.stdout.flush()
+            sys.stdout.write("\033[2K\r")  # erasing line
+            sys.stdout.write(f"🎲 {display}")
+            sys.stdout.flush()
 
-        progress = min(elapsed / total_duration, 1.0)
-        delay = min_delay + (max_delay - min_delay) * (progress ** 2)  # ease-out
-        time.sleep(delay)
+            progress = min(elapsed / total_duration, 1.0)
+            delay = min_delay + (max_delay - min_delay) * (progress ** 2)  # ease-out
+            time.sleep(delay)
+    except KeyboardInterrupt:
+        pass  # прерывание во время анимации - сразу показываем итог, без трейсбека
 
     sys.stdout.write("\033[2K\r")
     sys.stdout.write(f"🎲 {result_str}\n")
@@ -403,7 +406,7 @@ def main():
     spam = False
     sound_path = ""
     repeat = False
-    version = "v0.4.1"
+    version = "v0.4.2"
 
     parser = argparse.ArgumentParser(
         description=(
