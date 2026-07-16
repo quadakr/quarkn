@@ -297,9 +297,10 @@ def animate_random_reveal(low, high, result):
         digits = digits[1:]
 
     digit_count = len(digits)
-    total_duration = 3.5
-    min_delay = 0.01
+    total_duration = 4 
+    min_delay = 0.01 
     max_delay = 0.22 
+
     lock_times = [
         total_duration * (i + 1) / (digit_count + 0.3) for i in range(digit_count)
     ]
@@ -336,6 +337,14 @@ def animate_random_reveal(low, high, result):
 
 
 def parse_random_range(tokens):
+    if not tokens:
+        return 0, 100
+    if len(tokens) == 1:
+        try:
+            x = int(tokens[0])
+            return min(0, x), max(0, x)
+        except ValueError:
+            pass
     if len(tokens) == 2:
         try:
             a = int(tokens[0])
@@ -347,7 +356,7 @@ def parse_random_range(tokens):
     text = " ".join(str(t) for t in tokens).strip().lower()
     text = re.sub(r"\bfrom\b", " ", text)
     text = re.sub(r"\bto\b", "-", text)
-    text = re.sub(r"\s+", "", text) 
+    text = re.sub(r"\s+", "", text)
 
     match = re.match(r"^(-?\d+)-(-?\d+)$", text)
 
@@ -373,7 +382,7 @@ def main():
     spam = False
     sound_path = ""
     repeat = False
-    version = "v0.5.0"
+    version = "v0.4.0"
 
     parser = argparse.ArgumentParser(
         description=(
@@ -468,10 +477,10 @@ def main():
     parser.add_argument(
         "-rnd",
         "--random",
-        nargs="+",
+        nargs="*",
         help=(
             "Print a random integer from a range instead of running a timer. "
-            "Supports negative numbers. "
+            "No args -> 0-100. One arg X -> 0 to X. Supports negative numbers. "
             "Formats: '1 100', '1-100', '1 to 100', 'from 1 to 100', '-10-100', 'from -10 to -100'."
         ),
     )
@@ -483,17 +492,22 @@ def main():
         help=(
             "Print a random integer with an animated 'roll' reveal "
             "(digits stop one by one, mixed with noise symbols like #@%%&). "
+            "Same range rules as -rnd/--random (no args -> 0-100, one arg X -> 0 to X). "
             "Can be used standalone with a range (ex: quarkn -ar 10 100) "
-            "or together with -rnd/--random for the same range formats."
+            "or together with -rnd/--random."
         ),
     )
 
     args = parser.parse_args()
 
-    if args.animate_random is None and not any(vars(args).values()):
+    if (
+        args.animate_random is None
+        and args.random is None
+        and not any(vars(args).values())
+    ):
         # checks if any agrument got any value
-        # (animate_random handled separately: nargs='*' makes a bare "-ar" == [],
-        # which is falsy but still means the flag was provided)
+        # (animate_random/random handled separately: nargs='*' makes a bare
+        # "-ar"/"-rnd" == [], which is falsy but still means the flag was provided)
         print(
             "Missing arguments. Run 'quarkn -h' to get instructions or 'quarkn -i' for interactive mode. "
         )
@@ -508,21 +522,13 @@ def main():
         sys.exit(0)
 
     if args.animate_random is not None:
-        range_tokens = args.animate_random if args.animate_random else args.random
-
-        if not range_tokens:
-            print(
-                "Error: -ar/--animate-random needs a range, either directly "
-                "(ex: quarkn -ar 10 100) or via -rnd/--random."
-            )
-            sys.exit(1)
-
+        range_tokens = args.animate_random or args.random or []
         low, high = parse_random_range(range_tokens)
         result = random.randint(low, high)
         animate_random_reveal(low, high, result)
         sys.exit(0)
 
-    if args.random:
+    if args.random is not None:
         low, high = parse_random_range(args.random)
         result = random.randint(low, high)
         print(result)
