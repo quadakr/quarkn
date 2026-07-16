@@ -168,7 +168,7 @@ def format_stopwatch_time(seconds):
         parts.append(f"{hours}h")
     if minutes:
         parts.append(f"{minutes}m")
-    if seconds or not parts:  # всегда показываем секунды, если ничего нет
+    if seconds or not parts:
         parts.append(f"{seconds}s")
     return " ".join(parts)
 
@@ -215,17 +215,14 @@ def stopwatch_run():
                 next_spinner_change += spinner_change_interval
 
             formatted = format_stopwatch_time_precise(elapsed)
-            # выводим в одну строку, затираем предыдущее
             sys.stdout.write(f"\r{spinner[spinner_idx]} {formatted}")
             sys.stdout.flush()
 
-            # планируем следующий кадр строго через 0.01 секунды (100 FPS)
             next_frame += frame_interval
             sleep_time = next_frame - time.monotonic()
             if sleep_time > 0:
                 time.sleep(sleep_time)
     except KeyboardInterrupt:
-        # при Ctrl+C выводим финальное значение и завершаем
         elapsed = time.monotonic() - start
         sys.stdout.write(f"\r✓ {format_stopwatch_time_precise(elapsed)}\n")
         sys.stdout.flush()
@@ -283,43 +280,62 @@ def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
     return " ".join(words)
 
 
+_NOISE_CHARS = "#@%&*?/\\+=~"
+
+
 def animate_random_reveal(low, high, result):
-    """
-    Показывает "рулетку": описание диапазона словами, затем мелькание
-    случайных чисел из диапазона, постепенно замедляющееся и
-    останавливающееся на итоговом результате.
-    """
     print(
         f"Rolling from {low} to {high} "
         f"(from {number_to_words(low)} to {number_to_words(high)})..."
     )
 
-    frames = 26
-    for i in range(frames):
-        candidate = random.randint(low, high)
-        progress = i / (frames - 1)
-        delay = 0.02 + (progress ** 2) * 0.16  # ease-out, замедляется к концу
+    result_str = str(result)
+    sign = ""
+    digits = result_str
+    if digits.startswith("-"):
+        sign = "-"
+        digits = digits[1:]
+
+    digit_count = len(digits)
+    total_duration = 3.5
+    min_delay = 0.01
+    max_delay = 0.22 
+    lock_times = [
+        total_duration * (i + 1) / (digit_count + 0.3) for i in range(digit_count)
+    ]
+    lock_times[-1] = total_duration 
+
+    locked = [False] * digit_count
+    frame_pool = _NOISE_CHARS + "0123456789"
+    start = time.monotonic()
+
+    while not all(locked):
+        elapsed = time.monotonic() - start
+
+        for i in range(digit_count):
+            if not locked[i] and elapsed >= lock_times[i]:
+                locked[i] = True
+
+        chars = [
+            digits[i] if locked[i] else random.choice(frame_pool)
+            for i in range(digit_count)
+        ]
+        display = sign + "".join(chars)
 
         sys.stdout.write("\033[2K\r")  # erasing line
-        sys.stdout.write(f"🎲 {candidate}")
+        sys.stdout.write(f"🎲 {display}")
         sys.stdout.flush()
+
+        progress = min(elapsed / total_duration, 1.0)
+        delay = min_delay + (max_delay - min_delay) * (progress ** 2)  # ease-out
         time.sleep(delay)
 
     sys.stdout.write("\033[2K\r")
-    sys.stdout.write(f"🎲 {result}\n")
+    sys.stdout.write(f"🎲 {result_str}\n")
     sys.stdout.flush()
 
 
 def parse_random_range(tokens):
-    """
-    Разбирает диапазон для рандомайзера из разных форматов:
-    - два отдельных аргумента: -rnd 1 100 / -rnd -10 100
-    - компактная запись: -rnd "1-100" / -rnd "-10-100" / -rnd "-10--100"
-    - словесная запись: -rnd "1 to 100" / -rnd "from 1 to 100" / -rnd "from -10 to -100"
-    Возвращает (low, high) отсортированные по возрастанию.
-    """
-    # если пришло ровно два токена и оба сами по себе валидные целые числа -
-    # это короткая форма "-rnd 1 100" / "-rnd -10 100", берём их напрямую
     if len(tokens) == 2:
         try:
             a = int(tokens[0])
@@ -331,7 +347,7 @@ def parse_random_range(tokens):
     text = " ".join(str(t) for t in tokens).strip().lower()
     text = re.sub(r"\bfrom\b", " ", text)
     text = re.sub(r"\bto\b", "-", text)
-    text = re.sub(r"\s+", "", text)  # убираем все пробелы
+    text = re.sub(r"\s+", "", text) 
 
     match = re.match(r"^(-?\d+)-(-?\d+)$", text)
 
@@ -357,7 +373,7 @@ def main():
     spam = False
     sound_path = ""
     repeat = False
-    version = "v0.4.0"
+    version = "v0.5.0"
 
     parser = argparse.ArgumentParser(
         description=(
@@ -463,17 +479,21 @@ def main():
     parser.add_argument(
         "-ar",
         "--animate-random",
-        action="store_true",
+        nargs="*",
         help=(
-            "Used together with -rnd/--random. Animates the reveal with a "
-            "shuffling 'roll' effect and prints the range as words "
-            "(ex: 'from one to ten')."
+            "Print a random integer with an animated 'roll' reveal "
+            "(digits stop one by one, mixed with noise symbols like #@%%&). "
+            "Can be used standalone with a range (ex: quarkn -ar 10 100) "
+            "or together with -rnd/--random for the same range formats."
         ),
     )
 
     args = parser.parse_args()
 
-    if not any(vars(args).values()):  # checks if any agrument got any value
+    if args.animate_random is None and not any(vars(args).values()):
+        # checks if any agrument got any value
+        # (animate_random handled separately: nargs='*' makes a bare "-ar" == [],
+        # which is falsy but still means the flag was provided)
         print(
             "Missing arguments. Run 'quarkn -h' to get instructions or 'quarkn -i' for interactive mode. "
         )
@@ -487,19 +507,25 @@ def main():
         stopwatch_run()
         sys.exit(0)
 
-    if args.animate_random and not args.random:
-        print("Error: -ar/--animate-random must be used together with -rnd/--random.")
-        sys.exit(1)
+    if args.animate_random is not None:
+        range_tokens = args.animate_random if args.animate_random else args.random
+
+        if not range_tokens:
+            print(
+                "Error: -ar/--animate-random needs a range, either directly "
+                "(ex: quarkn -ar 10 100) or via -rnd/--random."
+            )
+            sys.exit(1)
+
+        low, high = parse_random_range(range_tokens)
+        result = random.randint(low, high)
+        animate_random_reveal(low, high, result)
+        sys.exit(0)
 
     if args.random:
         low, high = parse_random_range(args.random)
         result = random.randint(low, high)
-
-        if args.animate_random:
-            animate_random_reveal(low, high, result)
-        else:
-            print(result)
-
+        print(result)
         sys.exit(0)
 
     if (
