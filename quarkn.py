@@ -403,7 +403,7 @@ def main():
     spam = False
     sound_path = ""
     repeat = False
-    version = "v0.4.0"
+    version = "v0.4.1"
 
     parser = argparse.ArgumentParser(
         description=(
