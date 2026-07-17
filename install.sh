@@ -21,8 +21,8 @@ curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/quarkn.py \
 chmod +x /usr/local/bin/quarkn
 
 echo "Downloading default sound..."
-if curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/qn-notify-default.ogg \
-    -o /usr/local/bin/qn-notify-default.ogg; then
+if curl -fsSL https://raw.githubusercontent.com/quadakr/quarkn/main/assets/qn-notify-default.ogg \
+    > /usr/local/bin/qn-notify-default.ogg; then
     chmod 644 /usr/local/bin/qn-notify-default.ogg
 else
     echo "Warning: could not download default sound, skipping (quarkn will fall back to a terminal bell for -s)."
