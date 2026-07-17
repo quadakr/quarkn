@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os  # to easily check if default sound files exist on this system
 import argparse  # args
 import random  # for -rnd/--random and -ar/--animate-random
 import re  # to find patterns in user input and set f.ex "4m 1 hour 1 second" as 3841 seconds for time.sleep() function correctly
@@ -10,6 +11,32 @@ import sys  # for sys.exit(1) when there is a error or sys.exit(0) when it's eve
 import threading  # time countdown thread
 import time  # who would have thought, time
 
+_SOUND_DEFAULT_FLAG = "__default__"
+_SOUND_BELL_FALLBACK = "__bell__"
+
+_DEFAULT_SOUND_FILENAME = "qn-notify-default.ogg"
+
+_DEFAULT_SOUND_CANDIDATES = [
+    "/usr/share/sounds/freedesktop/stereo/complete.oga",
+    "/usr/share/sounds/freedesktop/stereo/bell.oga",
+    "/usr/share/sounds/freedesktop/stereo/message.oga",
+    "/usr/share/sounds/alsa/Front_Center.wav",
+    "/usr/share/sounds/sound-icons/prompt.wav",
+]
+
+
+def resolve_default_sound():
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    local_path = os.path.join(script_dir, _DEFAULT_SOUND_FILENAME)
+
+    if os.path.isfile(local_path):
+        return local_path
+
+    for candidate in _DEFAULT_SOUND_CANDIDATES:
+        if os.path.isfile(candidate):
+            return candidate
+
+    return _SOUND_BELL_FALLBACK
 
 def validate_number_words(time_str, FORBIDDEN_NUMBER_WORDS):
     words = re.findall(r"[a-zA-Z]+", time_str.lower())
@@ -105,6 +132,11 @@ def notify(count_of_notifications, text):  # using notify-send command
 
 
 def play_sound(sound_path):  # using external player
+    if sound_path == _SOUND_BELL_FALLBACK:
+        sys.stdout.write("\a")
+        sys.stdout.flush()
+        return
+        
     if shutil.which("mpv"):
         subprocess.Popen(
             ["mpv", "--no-video", sound_path],
@@ -146,13 +178,6 @@ def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
     return total_seconds
 
 def format_stopwatch_time(seconds):
-    """
-    Форматирует прошедшее время в читаемый вид:
-    - < 60 с: "45s"
-    - < 3600 с: "1m 30s"
-    - < 86400 с: "2h 15m"
-    - >= 86400 с: "3d 4h"
-    """
     seconds = int(seconds)
     days = seconds // 86400
     seconds %= 86400
@@ -281,8 +306,6 @@ def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
     try:
         return _number_to_words_impl(n)
     except (IndexError, ValueError):
-        # число за пределами поддерживаемых разрядов (больше decillion) -
-        # не падаем, а просто показываем цифрами
         return str(n)
 
 
@@ -353,7 +376,7 @@ def animate_random_reveal(low, high, result):
             delay = min_delay + (max_delay - min_delay) * (progress ** 2)  # ease-out
             time.sleep(delay)
     except KeyboardInterrupt:
-        pass  # прерывание во время анимации - сразу показываем итог, без трейсбека
+        pass 
 
     sys.stdout.write("\033[2K\r")
     sys.stdout.write(f"🎲 {result_str}\n")
@@ -465,8 +488,13 @@ def main():
         "-s",
         "--sound",
         required=False,
+        nargs="?",
+        const=_SOUND_DEFAULT_FLAG,
+        default=None,
         help=(
             "Play a sound when the notification is sent. "
+            "Pass without a path (just '-s') to play a default system sound "
+            "(or a terminal bell if none is found). "
             "Note #1: only mpv, ffplay, vlc are supported. "
             "Note #2: it plays even without a notification. "
         ),
@@ -582,6 +610,8 @@ def main():
     repeat = args.repeat
 
     sound_path = args.sound
+    if sound_path == _SOUND_DEFAULT_FLAG:
+        sound_path = resolve_default_sound()
 
     try:
         if args.interactive:
@@ -649,8 +679,12 @@ def main():
                     "Should the program play sound after countdown? (not a part on notifications)[y/n]: "
                 )
                 if sound_assinger == "y":
-                    sound_path = input("Sound path: ")
+                    sound_path = input(
+                        "Sound path (leave empty for default sound): "
+                    )
                     sound_path = sound_path.strip().strip('"').strip("'")
+                    if sound_path == "":
+                        sound_path = resolve_default_sound()
 
         TIME_PATTERN = re.compile(
             r"(\d+(?:[.,]\d+)?)\s*"  # In some countries it's common to write "," in fractional number but doesn't work in python
