@@ -60,7 +60,7 @@ def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
 
 
 def progress_bar_print(reached, toreach, length):
-    filled = int((reached  toreach) * length)
+    filled = int((reached / toreach) * length)
     unfilled = length - filled
     bar = "[" + "=" * filled + "-" * unfilled + "]"
     print(bar, end="", flush=True)
