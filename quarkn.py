@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!usrbinenv python3
 
 import os  # to easily check if default sound files exist on this system
 import argparse  # args
-import random  # for -rnd/--random and -ar/--animate-random
+import random  # for -rnd--random and -ar--animate-random
 import re  # to find patterns in user input and set f.ex "4m 1 hour 1 second" as 3841 seconds for time.sleep() function correctly
 import readline  # without this when you press f.ex left arrow, it writes "^[[D", but single library somehow fix that
 import shutil  # to find a player(s)
@@ -17,11 +17,11 @@ _SOUND_BELL_FALLBACK = "__bell__"
 _DEFAULT_SOUND_FILENAME = "qn-notify-default.ogg"
 
 _DEFAULT_SOUND_CANDIDATES = [
-    "/usr/share/sounds/freedesktop/stereo/complete.oga",
-    "/usr/share/sounds/freedesktop/stereo/bell.oga",
-    "/usr/share/sounds/freedesktop/stereo/message.oga",
-    "/usr/share/sounds/alsa/Front_Center.wav",
-    "/usr/share/sounds/sound-icons/prompt.wav",
+    "usrsharesoundsfreedesktopstereocomplete.oga",
+    "usrsharesoundsfreedesktopstereobell.oga",
+    "usrsharesoundsfreedesktopstereomessage.oga",
+    "usrsharesoundsalsaFront_Center.wav",
+    "usrsharesoundssound-iconsprompt.wav",
 ]
 
 
@@ -60,7 +60,7 @@ def normalize_numbers(text, WORD_NUMBERS):  # one -> 1, Nine -> 9 e.t.c.
 
 
 def progress_bar_print(reached, toreach, length):
-    filled = int((reached / toreach) * length)
+    filled = int((reached  toreach) * length)
     unfilled = length - filled
     bar = "[" + "=" * filled + "-" * unfilled + "]"
     print(bar, end="", flush=True)
@@ -80,9 +80,9 @@ def timeprint(wait_time_float):  # accurate time count
         if int(remaining) > 3599:
             print(
                 "Remaining: "
-                + str("{:.2f}".format(remaining / 3600))
-                + "/"
-                + str("{:.2f}".format(wait_time_float / 3600))
+                + str("{:.2f}".format(remaining  3600))
+                + ""
+                + str("{:.2f}".format(wait_time_float  3600))
                 + "h ",
                 end="",
                 flush=True,
@@ -90,9 +90,9 @@ def timeprint(wait_time_float):  # accurate time count
         elif int(remaining) > 119:
             print(
                 "Remaining: "
-                + str("{:.1f}".format(remaining / 60))
-                + "/"
-                + str("{:.1f}".format(wait_time_float / 60))
+                + str("{:.1f}".format(remaining  60))
+                + ""
+                + str("{:.1f}".format(wait_time_float  60))
                 + "m ",
                 end="",
                 flush=True,
@@ -101,7 +101,7 @@ def timeprint(wait_time_float):  # accurate time count
             print(
                 "Remaining: "
                 + str(int(remaining) + 1)
-                + "/"
+                + ""
                 + str(int(wait_time_float))
                 + "s ",
                 end="",
@@ -179,11 +179,11 @@ def parse_time_to_seconds(time_str, TIME_PATTERN, UNIT_TO_SECONDS):
 
 def format_stopwatch_time(seconds):
     seconds = int(seconds)
-    days = seconds // 86400
+    days = seconds  86400
     seconds %= 86400
-    hours = seconds // 3600
+    hours = seconds  3600
     seconds %= 3600
-    minutes = seconds // 60
+    minutes = seconds  60
     seconds %= 60
 
     parts = []
@@ -202,11 +202,11 @@ def format_stopwatch_time_precise(seconds):
     """Format with hundredths of seconds: 1m 30.45s"""
     total_ms = int(seconds * 100)
 
-    hours = total_ms // 360000
+    hours = total_ms  360000
     total_ms %= 360000
-    minutes = total_ms // 6000
+    minutes = total_ms  6000
     total_ms %= 6000
-    secs = total_ms // 100
+    secs = total_ms  100
     hundredths = total_ms % 100
 
     parts = []
@@ -220,12 +220,12 @@ def format_stopwatch_time_precise(seconds):
 
 
 def stopwatch_run():
-    spinner = ['/', '—', '\\']
+    spinner = [' /', ' —', ' \\']
     start = time.monotonic()
     next_frame = start
     spinner_idx = 0
     fps = 100  # 100 frames per second for smooth display
-    frame_interval = 1.0 / fps
+    frame_interval = 1.0  fps
     spinner_change_interval = 0.5  # spinner changes every 0.25s (25 frames)
     next_spinner_change = start + spinner_change_interval
 
@@ -278,7 +278,7 @@ _SCALES = [
     (10 ** 3, "thousand"),
 ]
 
-_NOISE_CHARS = "#@%&*?/\\+=~"
+_NOISE_CHARS = "#@%&*?\\+=~"
 
 def _number_to_words_impl(n):
     if n == 0:
@@ -291,7 +291,7 @@ def _number_to_words_impl(n):
 
     for value, name in _SCALES:
         if n >= value:
-            count = n // value
+            count = n  value
             words.extend(_three_digit_to_words(count))
             words.append(name)
             n %= value
@@ -312,11 +312,11 @@ def number_to_words(n):  # 42 -> "forty two", -7 -> "negative seven"
 def _three_digit_to_words(n):  # 0-999 -> ["nine", "hundred", "ninety", "nine"]
     words = []
     if n >= 100:
-        words.append(_ONES[n // 100])
+        words.append(_ONES[n  100])
         words.append("hundred")
         n %= 100
     if n >= 20:
-        words.append(_TENS[n // 10])
+        words.append(_TENS[n  10])
         n %= 10
         if n:
             words.append(_ONES[n])
@@ -346,7 +346,7 @@ def animate_random_reveal(low, high, result):
     max_delay = 0.22 
 
     lock_times = [
-        total_duration * (i + 1) / (digit_count + 0.3) for i in range(digit_count)
+        total_duration * (i + 1)  (digit_count + 0.3) for i in range(digit_count)
     ]
     lock_times[-1] = total_duration 
 
@@ -372,7 +372,7 @@ def animate_random_reveal(low, high, result):
             sys.stdout.write(f"🎲 {display}")
             sys.stdout.flush()
 
-            progress = min(elapsed / total_duration, 1.0)
+            progress = min(elapsed  total_duration, 1.0)
             delay = min_delay + (max_delay - min_delay) * (progress ** 2)  # ease-out
             time.sleep(delay)
     except KeyboardInterrupt:
@@ -544,9 +544,9 @@ def main():
         help=(
             "Print a random integer with an animated 'roll' reveal "
             "(digits stop one by one, mixed with noise symbols like #@%%&). "
-            "Same range rules as -rnd/--random (no args -> 0-100, one arg X -> 0 to X). "
+            "Same range rules as -rnd--random (no args -> 0-100, one arg X -> 0 to X). "
             "Can be used standalone with a range (ex: quarkn -ar 10 100) "
-            "or together with -rnd/--random."
+            "or together with -rnd--random."
         ),
     )
 
@@ -558,8 +558,8 @@ def main():
         and not any(vars(args).values())
     ):
         # checks if any agrument got any value
-        # (animate_random/random handled separately: nargs='*' makes a bare
-        # "-ar"/"-rnd" == [], which is falsy but still means the flag was provided)
+        # (animate_randomrandom handled separately: nargs='*' makes a bare
+        # "-ar""-rnd" == [], which is falsy but still means the flag was provided)
         print(
             "Missing arguments. Run 'quarkn -h' to get instructions or 'quarkn -i' for interactive mode. "
         )
@@ -640,7 +640,7 @@ def main():
 
             if not args.no_text:
                 notification_assinger = input(
-                    "Should the program send you a notification?[y/n]: "
+                    "Should the program send you a notification?[yn]: "
                 )
                 if notification_assinger == "y":
                     send_notification = True
@@ -658,7 +658,7 @@ def main():
 
             if not args.spam:
                 spam_assinger = input(
-                    "Should the program spam notifications? (it will send 50 instead of 1)[y/n]: "
+                    "Should the program spam notifications? (it will send 50 instead of 1)[yn]: "
                 )
                 if spam_assinger == "y":
                     spam = True
@@ -667,7 +667,7 @@ def main():
 
             if not args.repeat:
                 repeat_assinger = input(
-                    "Should the program repeat countdown and notification (and/or sound) until stopped manually?[y/n]: "
+                    "Should the program repeat countdown and notification (andor sound) until stopped manually?[yn]: "
                 )
                 if repeat_assinger == "y":
                     repeat = True
@@ -676,7 +676,7 @@ def main():
 
             if not args.sound:
                 sound_assinger = input(
-                    "Should the program play sound after countdown? (not a part on notifications)[y/n]: "
+                    "Should the program play sound after countdown? (not a part on notifications)[yn]: "
                 )
                 if sound_assinger == "y":
                     sound_path = input(
