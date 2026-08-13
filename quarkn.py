@@ -251,7 +251,7 @@ def stopwatch_run():
                 time.sleep(sleep_time)
     except KeyboardInterrupt:
         elapsed = time.monotonic() - start
-        sys.stdout.write(f"\r✓ {format_stopwatch_time_precise(elapsed)}\n")
+        sys.stdout.write(f"\r✅ {format_stopwatch_time_precise(elapsed)}\n")
         sys.stdout.flush()
         print("\nStopwatch stopped.")
         sys.exit(0)
