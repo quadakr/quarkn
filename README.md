@@ -2,7 +2,7 @@
 
 # Quarkn
 
-Simple **Linux only** CLI notification tool.
+Simple **Linux only** CLI notification tool and general work helper.
 
 Quarkn is a lightweight command-line utility for scheduling one-time notifications,
 optionally executing commands or playing sounds after a specified delay.
