@@ -22,13 +22,13 @@ The interface and internal behavior may change as the project evolves.
 
 ## Features
 
-- Timed notifications
-- Repeated notifications
-- Spam mode
-- Interactive mode
-- Optional sound playback
-- Command execution after timer
+- Timed notifications | Repeated notifications | Spam mode and optional sound playback for notifications
+- Interactive mode (for notifications)
+- [cyclic] command execution after timer
 - Fractional time support (e.g. `1.5h`, `2,5m`, `2 hours 26 minutes`)
+- Word/symbols count
+- Passwords generator
+- Random number picker
 - No background services or daemons required
 
 ---
