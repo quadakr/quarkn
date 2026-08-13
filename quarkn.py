@@ -532,7 +532,8 @@ def main():
     )
 
     parser.add_argument(
-    "--stopwatch", "-sw",
+    "-sw",
+    "--stopwatch", 
     action="store_true",
     help="Run as stopwatch (count up) instead of countdown.",
     )
@@ -599,17 +600,24 @@ def main():
 
     if args.count_words is not None:
         chars, words, chars_no_spaces = count_words(args.count_words)
-        print(f"Символов: {chars}")
-        print(f"Слов: {words}")
-        print(f"Символов без пробелов: {chars_no_spaces}")
+        print(f"Symbols: {chars}")
+        print(f"Words: {words}")
+        print(f"Symbols without spaces: {chars_no_spaces}")
         sys.exit(0)
 
-    if args.generate_password is not None:
+    if args.generate_password:
+        
+        if args.generate_password is not None:
+            pass
+        else:
+            args.generate_password = 16
+            
         if args.generate_password <= 0:
-            print("Ошибка: длина пароля должна быть больше 0.")
+            print("Password length must be above 0.")
             sys.exit(1)
         print(generate_password(args.generate_password))
         sys.exit(0)
+        
     
     if args.animate_random is not None:
         range_tokens = args.animate_random or args.random or []
