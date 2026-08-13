@@ -560,11 +560,13 @@ def main():
             "or together with -rnd/--random."
         ),
     )
+    
     parser.add_argument(
     "-cw",
     "--count-words",
     help="Подсчитать кол-во символов, слов и символов без пробелов в тексте.",
     )
+    
     parser.add_argument(
         "-gp",
         "--generate-password",
@@ -596,11 +598,11 @@ def main():
         sys.exit(0)
 
     if args.count_words is not None:
-    chars, words, chars_no_spaces = count_words(args.count_words)
-    print(f"Символов: {chars}")
-    print(f"Слов: {words}")
-    print(f"Символов без пробелов: {chars_no_spaces}")
-    sys.exit(0)
+        chars, words, chars_no_spaces = count_words(args.count_words)
+        print(f"Символов: {chars}")
+        print(f"Слов: {words}")
+        print(f"Символов без пробелов: {chars_no_spaces}")
+        sys.exit(0)
 
     if args.generate_password is not None:
         if args.generate_password <= 0:
