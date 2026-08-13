@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import secrets
+import string
 import os  # to easily check if default sound files exist on this system
 import argparse  # args
 import random  # for -rnd/--random and -ar/--animate-random
@@ -419,6 +421,15 @@ def parse_random_range(tokens):
     a, b = int(match.group(1)), int(match.group(2))
     return min(a, b), max(a, b)
 
+def count_words(text):
+    chars = len(text)
+    words = len(text.split())
+    chars_no_spaces = len(text.replace(" ", ""))
+    return chars, words, chars_no_spaces
+
+def generate_password(length):
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 def main():
     wait_time_str = 0
@@ -549,6 +560,17 @@ def main():
             "or together with -rnd/--random."
         ),
     )
+    parser.add_argument(
+    "-cw",
+    "--count-words",
+    help="Подсчитать кол-во символов, слов и символов без пробелов в тексте.",
+    )
+    parser.add_argument(
+        "-gp",
+        "--generate-password",
+        type=int,
+        help="Сгенерировать пароль указанной длины.",
+    )
 
     args = parser.parse_args()
 
@@ -573,6 +595,20 @@ def main():
         stopwatch_run()
         sys.exit(0)
 
+    if args.count_words is not None:
+    chars, words, chars_no_spaces = count_words(args.count_words)
+    print(f"Символов: {chars}")
+    print(f"Слов: {words}")
+    print(f"Символов без пробелов: {chars_no_spaces}")
+    sys.exit(0)
+
+    if args.generate_password is not None:
+        if args.generate_password <= 0:
+            print("Ошибка: длина пароля должна быть больше 0.")
+            sys.exit(1)
+        print(generate_password(args.generate_password))
+        sys.exit(0)
+    
     if args.animate_random is not None:
         range_tokens = args.animate_random or args.random or []
         low, high = parse_random_range(range_tokens)
