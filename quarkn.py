@@ -565,14 +565,14 @@ def main():
     parser.add_argument(
     "-cw",
     "--count-words",
-    help="Подсчитать кол-во символов, слов и символов без пробелов в тексте.",
+    help="Count words and symbols in a text.",
     )
     
     parser.add_argument(
         "-gp",
         "--generate-password",
         type=int,
-        help="Сгенерировать пароль указанной длины.",
+        help="Generate a password.",
     )
 
     args = parser.parse_args()
